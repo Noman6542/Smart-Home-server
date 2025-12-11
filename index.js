@@ -1,4 +1,5 @@
 require("dotenv").config();
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 const express = require('express');
 const cors = require('cors');
 const app =express();
@@ -6,6 +7,7 @@ const port = process.env.PORT || 5000;
 app.use(express.json());
 app.use(cors());
 const { MongoClient, ServerApiVersion } = require('mongodb');
+
 // const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString(
 //   'utf-8'
 // )
@@ -156,6 +158,68 @@ app.get("/services", async (req, res) => {
   }
 });
 
+  // Payment Stripe 
+  app.post("/create-checkout-session", async (req, res) => {
+  try {
+    const { 
+      serviceId, 
+      serviceName, 
+      serviceType, 
+      description, 
+      price, 
+      userName, 
+      userEmail 
+    } = req.body;
+
+    if (!serviceId || !serviceName || !price) {
+      return res.status(400).send({
+        success: false,
+        message: "Missing required fields"
+      });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: serviceName,
+              description: `${description} | Type: ${serviceType}`,
+            },
+            unit_amount: price * 100,
+          },
+          quantity: 1,
+        },
+      ],
+      // customer_email: paymentInfo?.customer?.email,
+      mode: "payment",
+
+      metadata: {
+        serviceId,
+        serviceName,
+        serviceType,
+        userName,
+        userEmail,
+      },
+
+      success_url: `${process.env.CLINT_SERVER}/payment-success`,
+      cancel_url: `${process.env.CLINT_SERVER}/service/${serviceId}`,
+    });
+
+    res.send({ success: true, url: session.url });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({
+      success: false,
+      message: "Stripe session creation failed",
+      error: error.message,
+    });
+  }
+});
 
 
 
