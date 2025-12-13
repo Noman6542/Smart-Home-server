@@ -83,6 +83,24 @@ async function run() {
       res.send({ success:true, count: list.length, data: list });
     });
 
+    // my inventory delete 
+    app.delete("/services/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await serviceCollection.deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    if (result.deletedCount > 0) {
+      res.send({ success: true });
+    } else {
+      res.status(404).send({ success: false });
+    }
+  } catch (error) {
+    res.status(500).send({ success: false, error: error.message });
+  }
+});
+
    
     
     // Update Booking Status
