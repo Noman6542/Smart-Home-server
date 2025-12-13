@@ -419,7 +419,10 @@ app.post("/payment-success", async (req, res) => {
 // Save user's Data
 
 app.post('/users',async(req,res)=>{
+  const usersData = req.body;
+  const result = await usersCollection.insertOne(usersData)
   
+  res.send(result)
 })
 
 
