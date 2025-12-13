@@ -70,7 +70,7 @@ async function run() {
       res.send({ success:true, count: list.length, data: list });
     });
     // This is for seller 
-    app.get("/manage-booking/:email", async (req, res) => {
+    app.get("/manage-decorator/:email", async (req, res) => {
       const email = req.params.email;
       const list = await bookingCollection.find({'seller.email': email }).sort({ createdAt:-1 }).toArray();
       res.send({ success:true, count: list.length, data: list });
