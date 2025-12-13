@@ -69,7 +69,21 @@ async function run() {
       const list = await bookingCollection.find({ email }).sort({ createdAt:-1 }).toArray();
       res.send({ success:true, count: list.length, data: list });
     });
+    // This is for seller 
+    app.get("/manage-booking/:email", async (req, res) => {
+      const email = req.params.email;
+      const list = await bookingCollection.find({'seller.email': email }).sort({ createdAt:-1 }).toArray();
+      res.send({ success:true, count: list.length, data: list });
+    });
 
+     // my Inventory 
+    app.get("/my-Inventory/:email", async (req, res) => {
+      const email = req.params.email;
+      const list = await serviceCollection.find({'seller.email': email }).sort({ createdAt:-1 }).toArray();
+      res.send({ success:true, count: list.length, data: list });
+    });
+
+   
     
     // Update Booking Status
 app.patch("/bookings/:id/status", async (req, res) => {
@@ -115,6 +129,20 @@ app.patch("/bookings/:id/status", async (req, res) => {
       }
     });
 
+      app.delete("/bookings/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const result = await bookingCollection.deleteOne({ _id: new ObjectId(id) });
+      if (result.deletedCount > 0) {
+        res.send({ success: true, message: "Booking deleted successfully!" });
+      } else {
+        res.status(404).send({ success: false, message: "Booking not found!" });
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).send({ success: false, message: "Deletion failed!", error: err.message });
+    }
+  });
 
     // POST: Add New Service
 app.post("/services", async (req, res) => {
