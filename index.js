@@ -6,7 +6,7 @@ const app =express();
 const port = process.env.PORT || 5000;
 app.use(express.json());
 app.use(cors());
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 // const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString(
 //   'utf-8'
@@ -53,6 +53,8 @@ async function run() {
     const db = client.db("smartHome");
     const bookingCollection = db.collection("bookings");
     const serviceCollection = db.collection("service");
+    const paymentsCollection = db.collection("payments");
+
       // Booking 
 
       // This is for admin
@@ -168,10 +170,11 @@ app.get("/services", async (req, res) => {
       description, 
       price, 
       userName, 
-      userEmail 
+      userEmail,
+      bookingId 
     } = req.body;
 
-    if (!serviceId || !serviceName || !price) {
+    if (!serviceId || !serviceName || !price || !bookingId) {
       return res.status(400).send({
         success: false,
         message: "Missing required fields"
@@ -180,7 +183,7 @@ app.get("/services", async (req, res) => {
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      
+      billing_address_collection: "auto",
       line_items: [
         {
           price_data: {
@@ -203,9 +206,11 @@ app.get("/services", async (req, res) => {
         serviceType,
         userName,
         userEmail,
+        bookingId,
       },
+      
 
-      success_url: `${process.env.CLINT_SERVER}/payment-success`,
+      success_url: `${process.env.CLINT_SERVER}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLINT_SERVER}/service/${serviceId}`,
     });
 
@@ -222,6 +227,145 @@ app.get("/services", async (req, res) => {
 });
 
 
+// app.post("/payment-success", async (req, res) => {
+//   try {
+//     const { sessionId } = req.body;
+
+//     if (!sessionId) {
+//       return res.status(400).send({ success: false, message: "Session ID missing" });
+//     }
+
+//     // Get Stripe session
+//     const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+//     const metadata = session.metadata;
+
+//     // Fetch booking info
+//     // const booking = await bookingCollection.findOne({
+//     //   serviceId: metadata.serviceId,
+//     //   userEmail: metadata.userEmail
+//     // });
+//     const paymentExists = await paymentsCollection.findOne({
+//   transactionId: session.payment_intent,
+// });
+//     // If session completed and booking not updated previously
+//     if (session.payment_status === "paid" && !paymentExists) {
+//       // Save Payment Information
+//       const paymentInfo = {
+//         serviceId: metadata.serviceId,
+//         serviceName: metadata.serviceName,
+//         serviceType: metadata.serviceType,
+//         userName: metadata.userName,
+//         userEmail: metadata.userEmail,
+//         transactionId: session.payment_intent,
+//         amount: session.amount_total / 100,
+//         date: new Date(),
+//         status: "paid",
+//       };
+
+//       // Insert into payments collection
+//       const paymentResult = await db.collection("payments").insertOne(paymentInfo);
+
+//       // Update Booking Status
+//       await bookingCollection.updateOne(
+//         { serviceId: metadata.serviceId, userEmail: metadata.userEmail },
+//         { $set: { status: "paid", transactionId: session.payment_intent } }
+//       );
+
+//       return res.send({
+//         success: true,
+//         message: "Payment Success & Booking Updated!",
+//         transactionId: session.payment_intent,
+//         paymentId: paymentResult.insertedId,
+//       });
+//     }
+
+//     res.send({ success: false, message: "Payment not completed" });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send({ success: false, error: error.message });
+//   }
+// });
+// MongoDB থেকে ObjectId ইমপোর্ট করা হয়েছে ধরে নিচ্ছি
+// const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+
+app.post("/payment-success", async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+
+    if (!sessionId) {
+      return res
+        .status(400)
+        .send({ success: false, message: "Session ID missing" });
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const metadata = session.metadata;
+    const bookingId = metadata.bookingId;
+
+    if (!bookingId) {
+      return res
+        .status(400)
+        .send({ success: false, message: "Booking ID missing in metadata" });
+    }
+
+    const paymentExists = await paymentsCollection.findOne({
+      transactionId: session.payment_intent,
+    });
+
+    if (session.payment_status === "paid" && !paymentExists) {
+      const paymentInfo = {
+        serviceId: metadata.serviceId,
+        serviceName: metadata.serviceName,
+        serviceType: metadata.serviceType,
+        userName: metadata.userName,
+        userEmail: metadata.userEmail,
+        bookingId: bookingId,
+        transactionId: session.payment_intent,
+        amount: session.amount_total / 100,
+        date: new Date(),
+        status: "paid",
+      };
+
+      const paymentResult = await paymentsCollection.insertOne(paymentInfo);
+
+      await bookingCollection.updateOne(
+        { _id: new ObjectId(bookingId) },
+        {
+          $set: {
+            status: "paid",
+            transactionId: session.payment_intent,
+          },
+        }
+      );
+
+      return res.send({
+        success: true,
+        message: "Payment Success & Booking Updated!",
+        transactionId: session.payment_intent,
+        paymentId: paymentResult.insertedId,
+      });
+    }
+
+    if (paymentExists) {
+      return res.send({
+        success: true,
+        message: "Payment already recorded.",
+      });
+    }
+
+    res.send({
+      success: false,
+      message: "Payment not completed or unknown error.",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
 
 
 
