@@ -418,6 +418,9 @@ app.post("/payment-success", async (req, res) => {
 
 // Save user's Data
 
+app.post('/users',async(req,res)=>{
+  
+})
 
 
 
