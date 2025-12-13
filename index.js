@@ -54,6 +54,7 @@ async function run() {
     const bookingCollection = db.collection("bookings");
     const serviceCollection = db.collection("service");
     const paymentsCollection = db.collection("payments");
+    const usersCollection =db.collection("users");
 
       // Booking 
 
@@ -415,6 +416,7 @@ app.post("/payment-success", async (req, res) => {
 
 
 
+// Save user's Data
 
 
 
