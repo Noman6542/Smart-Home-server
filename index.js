@@ -6,6 +6,10 @@ const app =express();
 const port = process.env.PORT || 5000;
 app.use(express.json());
 app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:5173'],
+    credentials: true,
+}));
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 // const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString(
