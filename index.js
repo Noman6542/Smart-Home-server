@@ -420,6 +420,23 @@ app.post("/payment-success", async (req, res) => {
 
 app.post('/users',async(req,res)=>{
   const usersData = req.body;
+  usersData.created_At= new Date().toISOString();
+  usersData.last_loggedIn= new Date().toISOString();
+
+
+  const query ={email:usersData.email}
+
+  const alreadyExists = await usersCollection.findOne(query);
+
+  console.log('users alreadyExists--------->',alreadyExists);
+
+  if(alreadyExists){
+    const update =await usersCollection.updateOne(query,{$set:{
+      last_loggedIn:new Date().toISOString(),
+    }},)
+   return res.send(update)
+  }
+  
   const result = await usersCollection.insertOne(usersData)
   
   res.send(result)
