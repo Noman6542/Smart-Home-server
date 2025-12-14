@@ -422,25 +422,33 @@ app.post('/users',async(req,res)=>{
   const usersData = req.body;
   usersData.created_At= new Date().toISOString();
   usersData.last_loggedIn= new Date().toISOString();
-
+  usersData.role = 'customer'
 
   const query ={email:usersData.email}
 
   const alreadyExists = await usersCollection.findOne(query);
 
-  console.log('users alreadyExists--------->',alreadyExists);
-
   if(alreadyExists){
+    
     const update =await usersCollection.updateOne(query,{$set:{
       last_loggedIn:new Date().toISOString(),
     }},)
    return res.send(update)
   }
   
+  
   const result = await usersCollection.insertOne(usersData)
   
   res.send(result)
 })
+
+
+    // get a user's role : req.tokenEmail 
+    app.get('/user/role/:email',async (req, res) => {
+      const email = req.params.email;
+      const result = await usersCollection.findOne({ email})
+      res.send({ role: result?.role })
+    })
 
 
 
