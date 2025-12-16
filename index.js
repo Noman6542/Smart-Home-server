@@ -5,7 +5,7 @@ const cors = require('cors');
 const app =express();
 const port = process.env.PORT || 5000;
 app.use(express.json());
-app.use(cors());
+// app.use(cors());
 app.use(cors({
     origin: ['http://localhost:5173'],
     credentials: true,
@@ -69,20 +69,20 @@ async function run() {
     });
 
     // This is for user (Find out by email);
-    app.get("/bookings/user/:email", async (req, res) => {
+    app.get("/bookings/user/:email",verifyJWT, async (req, res) => {
       const email = req.params.email;
       const list = await bookingCollection.find({ email }).sort({ createdAt:-1 }).toArray();
       res.send({ success:true, count: list.length, data: list });
     });
     // This is for seller 
-    app.get("/manage-decorator/:email", async (req, res) => {
+    app.get("/manage-decorator/:email",verifyJWT, async (req, res) => {
       const email = req.params.email;
       const list = await bookingCollection.find({'seller.email': email }).sort({ createdAt:-1 }).toArray();
       res.send({ success:true, count: list.length, data: list });
     });
 
      // my Inventory 
-    app.get("/my-Inventory/:email", async (req, res) => {
+    app.get("/my-Inventory/:email",verifyJWT, async (req, res) => {
       const email = req.params.email;
       const list = await serviceCollection.find({'seller.email': email }).sort({ createdAt:-1 }).toArray();
       res.send({ success:true, count: list.length, data: list });
@@ -152,7 +152,7 @@ app.patch("/bookings/:id/status", async (req, res) => {
       }
     });
 
-      app.delete("/bookings/:id", async (req, res) => {
+      app.delete("/bookings/:id",verifyJWT, async (req, res) => {
     try {
       const id = req.params.id;
       const result = await bookingCollection.deleteOne({ _id: new ObjectId(id) });
@@ -168,7 +168,7 @@ app.patch("/bookings/:id/status", async (req, res) => {
   });
 
     // POST: Add New Service
-app.post("/services", async (req, res) => {
+app.post("/services",verifyJWT, async (req, res) => {
   try {
     const service = req.body;
     service.createdAt = new Date();
@@ -422,7 +422,7 @@ app.post("/payment-success", async (req, res) => {
 
 // Save user's Data
 
-app.post('/users',async(req,res)=>{
+app.post('/users',verifyJWT, async(req,res)=>{
   const usersData = req.body;
   usersData.created_At= new Date().toISOString();
   usersData.last_loggedIn= new Date().toISOString();
@@ -448,7 +448,7 @@ app.post('/users',async(req,res)=>{
 
 
     // get a user's role : req.tokenEmail 
-    app.get('/user/role/:email',async (req, res) => {
+    app.get('/user/role/:email',verifyJWT, async (req, res) => {
       const email = req.params.email;
       const result = await usersCollection.findOne({ email})
       res.send({ role: result?.role })
