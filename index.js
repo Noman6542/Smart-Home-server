@@ -221,6 +221,18 @@ app.get("/services", async (req, res) => {
   }
 });
 
+// Most popular Service
+app.get("/services", async (req, res) => {
+  const sort = req.query.sort;
+  let services;
+  if (sort === 'price_desc') {
+    services = await serviceCollection.find().sort({ price: -1 }).toArray();
+  } else {
+    services = await serviceCollection.find().toArray();
+  }
+  res.send({ success: true, data: services });
+});
+
   // Payment Stripe 
   app.post("/create-checkout-session", async (req, res) => {
   try {
@@ -477,30 +489,71 @@ app.post('/become-decorator', verifyJWT, async (req, res) => {
       res.send(result)
     })
 
+    // GET all decorator requests (for admin)
+app.get('/decorator-requests', verifyJWT, async (req, res) => {
+  try {
+    const requests = await decoratorRequestsCollection.find().toArray();
+    res.send(requests);
+  } catch (err) {
+    res.status(500).send({ success: false, message: err.message });
+  }
+});
 
-    // get all users for admin
-    // app.get('/users', verifyJWT, verifyADMIN, async (req, res) => {
-    //   const adminEmail = req.tokenEmail
-    //   const result = await usersCollection
-    //     .find({ email: { $ne: adminEmail } })
-    //     .toArray()
-    //   res.send(result)
-    // })
 
+// check decorator request status
+app.get('/decorator-request-status', verifyJWT, async (req, res) => {
+  const email = req.tokenEmail
+
+  const request = await decoratorRequestsCollection.findOne({ email })
+
+  if (request) {
+    return res.send({ requested: true })
+  }
+
+  res.send({ requested: false })
+})
+
+  // get all users for admin
+    app.get('/users', verifyJWT, async (req, res) => {
+      const adminEmail = req.tokenEmail
+      const result = await usersCollection
+        .find({ email: { $ne: adminEmail } })
+        .toArray()
+      res.send(result)
+    })
+
+    // Approve role
+// app.patch('/users/role/:id', verifyJWT,  async (req, res) => {
+//   const { role, roleRequest } = req.body
+//   const result = await usersCollection.updateOne(
+//     { _id: new ObjectId(req.params.id) },
+//     { $set: { role, roleRequest } }
+//   )
+//   res.send(result)
+// })
+
+// Reject request
+app.patch('/users/reject/:id', verifyJWT,  async (req, res) => {
+  const result = await usersCollection.updateOne(
+    { _id: new ObjectId(req.params.id) },
+    { $set: { roleRequest: null } }
+  )
+  res.send(result)
+})
 
 
 
      // update a user's role
-    // app.patch('/update-role', verifyJWT, verifyADMIN, async (req, res) => {
-    //   const { email, role } = req.body
-    //   const result = await usersCollection.updateOne(
-    //     { email },
-    //     { $set: { role } }
-    //   )
-    //   await sellerRequestsCollection.deleteOne({ email })
+    app.patch('/update-role', verifyJWT,  async (req, res) => {
+      const { email, role } = req.body
+      const result = await usersCollection.updateOne(
+        { email },
+        { $set: { role } }
+      )
+      await decoratorRequestsCollection.deleteOne({ email })
 
-    //   res.send(result)
-    // })
+      res.send(result)
+    })
 
 
 
