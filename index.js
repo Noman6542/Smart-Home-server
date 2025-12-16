@@ -1,6 +1,7 @@
 require("dotenv").config();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 const express = require('express');
+const admin = require("firebase-admin");
 const cors = require('cors');
 const app =express();
 const port = process.env.PORT || 5000;
@@ -19,6 +20,14 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 // admin.initializeApp({
 //   credential: admin.credential.cert(serviceAccount),
 // })
+
+
+const serviceAccount = require("./firebase-admin.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
 
 // Middleware JWT 
 const verifyJWT = async (req, res, next) => {
@@ -454,6 +463,57 @@ app.post('/users', async(req,res)=>{
       const result = await usersCollection.findOne({ email})
       res.send({ role: result?.role })
     })
+
+    // Become a decorator
+app.post('/become-decorator', verifyJWT, async (req, res) => {
+      const email = req.tokenEmail
+      const alreadyExists = await decoratorRequestsCollection.findOne({ email })
+      if (alreadyExists)
+        return res
+          .status(409)
+          .send({ message: 'Already requested, wait koro.' })
+
+      const result = await decoratorRequestsCollection.insertOne({ email })
+      res.send(result)
+    })
+
+
+    // get all users for admin
+    // app.get('/users', verifyJWT, verifyADMIN, async (req, res) => {
+    //   const adminEmail = req.tokenEmail
+    //   const result = await usersCollection
+    //     .find({ email: { $ne: adminEmail } })
+    //     .toArray()
+    //   res.send(result)
+    // })
+
+
+
+
+     // update a user's role
+    // app.patch('/update-role', verifyJWT, verifyADMIN, async (req, res) => {
+    //   const { email, role } = req.body
+    //   const result = await usersCollection.updateOne(
+    //     { email },
+    //     { $set: { role } }
+    //   )
+    //   await sellerRequestsCollection.deleteOne({ email })
+
+    //   res.send(result)
+    // })
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

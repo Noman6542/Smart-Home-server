@@ -1,2 +1,17 @@
+
+# Node modules
 node_modules
+
+# Environment variables
 .env
+
+# Firebase Admin SDK key
+firebase-admin.json
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
