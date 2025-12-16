@@ -59,6 +59,7 @@ async function run() {
     const serviceCollection = db.collection("service");
     const paymentsCollection = db.collection("payments");
     const usersCollection =db.collection("users");
+      const decoratorRequestsCollection = db.collection('decoratorRequests')
 
       // Booking 
 
