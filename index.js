@@ -222,11 +222,11 @@ app.get("/services", async (req, res) => {
 });
 
 // Most popular Service
-app.get("/services", async (req, res) => {
+app.get("/popular-services", async (req, res) => {
   const sort = req.query.sort;
   let services;
   if (sort === 'price_desc') {
-    services = await serviceCollection.find().sort({ price: -1 }).toArray();
+    services = await serviceCollection.find().sort({ price: -1 }).limit(6).toArray();
   } else {
     services = await serviceCollection.find().toArray();
   }
